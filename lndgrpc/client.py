@@ -1,7 +1,8 @@
 from .common import walletunlocker, ver, walletkit, signer, router, ln, BaseClient, invoices
 from .errors import handle_rpc_errors
 from datetime import datetime
-import binascii
+import secrets
+import hashlib
 
 class LNDClient(BaseClient):
 
@@ -386,8 +387,22 @@ class LNDClient(BaseClient):
     @handle_rpc_errors
     def send_payment(self, payment_request, fee_limit_msat, **kwargs):
         """Send a payment over lightning"""
+        custom_records = kwargs.get("dest_custom_records", [])
+
         fee_limit = ln.FeeLimit(fixed_msat=fee_limit_msat)
-        request = ln.SendRequest(payment_request=payment_request, fee_limit=fee_limit, **kwargs)
+
+        if payment_request:
+            request = ln.SendRequest(payment_request=payment_request, fee_limit=fee_limit, **kwargs)
+
+        else:
+            # If there is no payment request then try keysend
+            secret = secrets.token_bytes(32)
+            hashed_secret = hashlib.sha256(secret).hexdigest()
+            payment_hash = bytes.fromhex(hashed_secret)
+            keysend_custom_record = (5482373484, secret)
+            custom_records.append(keysend_custom_record)
+            request = ln.SendRequest(payment_hash=payment_hash, fee_limit=fee_limit, **kwargs)
+
         response = self._ln_stub.SendPaymentSync(request)
         return response
 
