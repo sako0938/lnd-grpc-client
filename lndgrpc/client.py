@@ -413,7 +413,7 @@ class LNDClient(BaseClient):
         return response
 
     @handle_rpc_errors
-    def get_chan_info(self, channel_id):
+    def get_channel_info(self, channel_id):
         """Get the state of a specific channel"""
         requset = ln.ChanInfoRequest(chan_id=channel_id)
         response = self._ln_stub.GetChanInfo(requset)

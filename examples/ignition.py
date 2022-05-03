@@ -127,7 +127,7 @@ for idx, pubkeyInfo in enumerate(pubkeysReorderedForIgnition):
 
         if hasChannel:
             #Check if Channel is disabled
-            chanResponse = lnd.get_chan_info(channelID)
+            chanResponse = lnd.get_channel_info(channelID)
             node1Disabled = chanResponse.node1_policy.disabled
             node2Disabled = chanResponse.node2_policy.disabled
             node_basefee_msat = 0
