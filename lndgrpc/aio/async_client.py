@@ -272,10 +272,6 @@ class AsyncLNDClient(BaseClient):
         SubscribeHtlcEvents creates a uni-directional stream
         from the server to the client which delivers a stream of htlc events.
         """
-        def handle_htlc(htlc):
-            print("new htlc event!")
-            print(htlc)
-            
         request = router.SubscribeHtlcEventsRequest()
-        response = [handle_htlc(x) async for x in self._router_stub.SubscribeHtlcEvents(request)]
-        return response
+        async for response in self._router_stub.SubscribeHtlcEvents(request):
+            yield response
