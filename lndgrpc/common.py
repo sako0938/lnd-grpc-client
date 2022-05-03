@@ -129,7 +129,7 @@ class BaseClient(object):
         if ip_address is None:
             node_ip = os.getenv("LND_NODE_IP")
             node_port = os.getenv("LND_NODE_PORT")
-            lnd_ip_port = f"{node_ip}:{node_port}"
+            ip_address = f"{node_ip}:{node_port}"
 
         # handle passing in credentials and cert directly
         if macaroon is None:
