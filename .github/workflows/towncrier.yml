@@ -30,3 +30,13 @@ jobs:
           source .venv/bin/activate
           towncrier build --yes
           git status
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          base: master
+          branch: new-version
+          commit-message: "Bumped the version"
+          title: "Bumped the version"
+          body: "Bumped the version"
+          reviewers: kornpow
