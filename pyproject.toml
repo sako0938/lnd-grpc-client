@@ -30,3 +30,7 @@ ptpython = "^3.0.20"
 [tool.poetry.group.dev.dependencies]
 sh = "^2.0.2"
 
+[tool.towncrier]
+directory = "changes"
+package = "lndgrpc"
+filename = "CHANGELOG.rst"
