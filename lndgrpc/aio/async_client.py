@@ -140,9 +140,9 @@ class AsyncLNDClient(BaseClient):
 
 
     @handle_rpc_errors
-    async def lookup_invoice(self, r_hash_str):
+    async def lookup_invoice(self, r_hash):
         """Lookup an existing invoice by its payment hash"""
-        request = ln.PaymentHash(r_hash_str=r_hash_str)
+        request = ln.PaymentHash(r_hash=r_hash)
         response = await self._ln_stub.LookupInvoice(request)
         return response
 

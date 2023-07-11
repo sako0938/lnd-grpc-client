@@ -229,9 +229,9 @@ class LightningRPC(BaseClient):
         return response
 
     @handle_rpc_errors
-    def lookup_invoice(self, r_hash_str):
+    def lookup_invoice(self, r_hash):
         """Lookup an existing invoice by its payment hash"""
-        request = ln.PaymentHash(r_hash_str=r_hash_str)
+        request = ln.PaymentHash(r_hash=r_hash)
         response = self._ln_stub.LookupInvoice(request)
         return response
 
