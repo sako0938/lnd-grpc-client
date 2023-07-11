@@ -383,6 +383,7 @@ class LightningRPC(BaseClient):
                     except Exception as e:
                         print(e)
                         print(traceback.format_exc())
+                        raise e
 
 
         response_msg = None

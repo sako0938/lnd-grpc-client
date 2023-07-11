@@ -24,6 +24,7 @@ class RouterRPC(BaseClient):
             response = self._router_stub.BuildRoute(request)
         except Exception as error:
             print(error)
+            raise error
 
         return response
 
