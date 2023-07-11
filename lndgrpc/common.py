@@ -4,6 +4,12 @@ import grpc
 import sys
 from pathlib import Path
 
+from urllib.parse import urlparse,parse_qs
+from base64 import urlsafe_b64decode
+from cryptography.x509 import load_der_x509_certificate
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+
 from lndgrpc.compiled import (
     lightning_pb2 as ln,
     lightning_pb2_grpc as lnrpc,
@@ -101,7 +107,7 @@ class BaseClient(object):
 
     def __init__(
         self,
-        ip_address=None,
+        host=None,
         cert=None,
         cert_filepath=None,
         no_tls=False,
@@ -140,7 +146,10 @@ class BaseClient(object):
 
         elif (macaroon_filepath and cert_filepath) or (macaroon and cert):
             pass
-        
+
+        elif host.startswith('lndconnect://'):
+            pass
+
         else:
             print("Missing credentials!")
             sys.exit(1)
@@ -154,8 +163,25 @@ class BaseClient(object):
 
         ###### Define Host Using Variables Passed On Object Creation ######
 
-        if ip_address is None:
-            ip_address = f"{node_ip}:{node_port}"
+        if host is None:
+            host = f"{node_ip}:{node_port}"
+
+        elif host.startswith('lndconnect://'):      # get both host and credentials from host
+
+            ParsedLNDConnect=urlparse(host)
+            ParsedLNDConnectQuery=parse_qs(ParsedLNDConnect.query)
+
+            macaroon=urlsafe_b64decode(ParsedLNDConnectQuery['macaroon'][0]).hex()
+
+            # probably more complicated than just doing a simple encoding conversion but couldn't find any simple example or module to do that.
+            # since the PEM data with the header and footer removed and then decoded is just DER data, read that in
+            ProcessedCertificate=load_der_x509_certificate(urlsafe_b64decode(ParsedLNDConnectQuery['cert'][0]),default_backend())
+
+            # then export it back out using normal PEM format, which is what GRPC is expecting.
+            cert=ProcessedCertificate.public_bytes(encoding=serialization.Encoding.PEM)
+
+            # now overwrite with just the actual host
+            host=ParsedLNDConnect.netloc
 
 
         # handle passing in credentials and cert directly
@@ -166,10 +192,10 @@ class BaseClient(object):
             cert = get_cert(cert_filepath)
 
         self._credentials = generate_credentials(cert, macaroon)
-        self.ip_address = ip_address
+        self.host = host
 
         channel = self.grpc_module.secure_channel(
-                        self.ip_address,
+                        self.host,
                         self._credentials, 
                         options =   [
                                         ('grpc.max_receive_message_length', 1024*1024*50),
