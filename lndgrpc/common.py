@@ -1,5 +1,4 @@
 import binascii
-import platform
 import os
 import grpc
 import sys
@@ -38,22 +37,7 @@ from lndgrpc.compiled import (
     chainnotifier_pb2_grpc as chainnotifierrpc,
 )
 
-system = platform.system().lower()
 
-if system == 'linux':
-    TLS_FILEPATH = os.path.expanduser('~/.lnd/tls.cert')
-    ADMIN_MACAROON_BASE_FILEPATH = '~/.lnd/data/chain/bitcoin/{}/admin.macaroon'
-    READ_ONLY_MACAROON_BASE_FILEPATH = '~/.lnd/data/chain/bitcoin/{}/readonly.macaroon'
-elif system == 'darwin':
-    TLS_FILEPATH = os.path.expanduser('~/Library/Application Support/Lnd/tls.cert')
-    ADMIN_MACAROON_BASE_FILEPATH = '~/Library/Application Support/Lnd/data/chain/bitcoin/{}/admin.macaroon'
-    READ_ONLY_MACAROON_BASE_FILEPATH = '~/Library/Application Support/Lnd/data/chain/bitcoin/{}/readonly.macaroon'
-elif system == 'windows':
-    TLS_FILEPATH = os.path.join(os.path.expanduser("~"), 'AppData', 'Local', 'Lnd', 'tls.cert')
-    ADMIN_MACAROON_BASE_FILEPATH = os.path.join(os.path.expanduser("~"), 'AppData', 'Local', 'Lnd', 'data', 'chain', 'bitcoin', 'mainnet', 'admin.macaroon')
-    READ_ONLY_MACAROON_BASE_FILEPATH = os.path.join(os.path.expanduser("~"), 'AppData', 'Local', 'Lnd', 'data', 'chain', 'bitcoin', 'mainnet', 'readonly.macaroon')
-else:
-    raise SystemError('Unrecognized system')
 
 
 # Due to updated ECDSA generated tls.cert we need to let gprc know that
@@ -68,7 +52,7 @@ def get_cert(filepath=None):
     Note: tls files need to be read in byte mode as of grpc 1.8.2
           https://github.com/grpc/grpc/issues/13866
     """
-    filepath = filepath or TLS_FILEPATH
+    filepath = filepath
     with open(filepath, 'rb') as f:
         cert = f.read()
     return cert
@@ -90,10 +74,7 @@ def get_macaroon(filepath=None):
 
 def generate_credentials(cert, macaroon):
     """Create composite channel credentials using cert and macaroon metadata"""
-    # create cert credentials from the tls.cert file
-    # if os.getenv("LND_HTTPS_TLS"):
-    #     cert_creds = grpc.ssl_channel_credentials()
-    # else:
+
     cert_creds = grpc.ssl_channel_credentials(cert)
 
     # build meta data credentials
@@ -128,25 +109,22 @@ class BaseClient(object):
         macaroon_filepath=None
     ):
 
-# # CASE 1: A folder with tls.cert, and admin.macaroon
-# export LND_CRED_PATH=/home/user/creds/my_favorite_node/lnd
 
-# # CASE 2: Running directly on a machine running LND
-# export LND_ROOT_DIR=/home/user/.lnd
-# export LND_NETWORK=mainnet
+        ###### Credentials Using Environmental Variables ######
+
+        # # CASE 1: A folder with tls.cert, and admin.macaroon
+        # export LND_CRED_PATH=/home/user/creds/my_favorite_node/lnd
 
         credential_path = os.getenv("LND_CRED_PATH", None)
+        lnd_macaroon = os.getenv("LND_MACAROON", "admin.macaroon") 
+
+
+        # # CASE 2: Running directly on a machine running LND
+        # export LND_ROOT_DIR=/home/user/.lnd
+        # export LND_NETWORK=mainnet
+
         root_dir = os.getenv("LND_ROOT_DIR", None)
         network = os.getenv("LND_NETWORK", None)
-        node_ip = os.getenv("LND_NODE_IP")
-        node_port = os.getenv("LND_NODE_PORT")
-        lnd_macaroon = os.getenv("LND_MACAROON", "admin.macaroon")
-        # Handle either passing in credentials_paths, or environment variable paths
-
-        # IF credential_path
-        # ELIF root_dir + network
-        # ELSE use passed in macaroon_filepath and cert_filepath
-        # ELSE use macaroon, and cert
 
         if credential_path:
             credential_path = Path(credential_path)
@@ -157,6 +135,9 @@ class BaseClient(object):
             macaroon_filepath = str(root_dir.joinpath(f"data/chain/bitcoin/{network}/admin.macaroon").absolute())
             cert_filepath = str(root_dir.joinpath("tls.cert").absolute())
 
+
+        ###### Credentials Using Variables Passed On Object Creation ######
+
         elif (macaroon_filepath and cert_filepath) or (macaroon and cert):
             pass
         
@@ -165,42 +146,17 @@ class BaseClient(object):
             sys.exit(1)
 
 
+        ###### Define Host Using Environmental Variables ######
 
-        # if macaroon_filepath is None and macaroon is None:
-        #     if credential_path != None:
-
-
-        #     elif root_dir != None and != network != None:
-        #         if credential_path != None:
-        #         credential_path = Path(root_dir)
-        #         macaroon_filepath = str(credential_path.joinpath(f"data/chain/bitcoin/{network}/admin.macaroon").absolute())
-
-        #     else:
-        #         print("Must specify LND_CRED_PATH, or LND_ROOT_DIR + LND_NETWORK environment variables!")
-        #         sys.exit(1)
+        node_ip = os.getenv("LND_NODE_IP")
+        node_port = os.getenv("LND_NODE_PORT")
 
 
-        # if cert_filepath is None and cert is None:
-        #     credential_path = os.getenv("LND_CRED_PATH", None)
-        #     credential_path = Path(credential_path)
-        #     cert_filepath = str(credential_path.joinpath("tls.cert").absolute())
-
-        #     if credential_path != None:
-        #         credential_path = Path(credential_path)
-        #         cert_filepath = str(credential_path.joinpath("tls.cert").absolute())
-
-        #     elif root_dir != None and != network != None:
-        #         if credential_path != None:
-        #         credential_path = Path(root_dir)
-        #         macaroon_filepath = str(credential_path.joinpath(f"data/chain/bitcoin/{network}/admin.macaroon").absolute())
-
-        #     else:
-        #         print("Must specify LND_CRED_PATH, or LND_ROOT_DIR + LND_NETWORK environment variables!")
-        #         sys.exit(1)
-
+        ###### Define Host Using Variables Passed On Object Creation ######
 
         if ip_address is None:
             ip_address = f"{node_ip}:{node_port}"
+
 
         # handle passing in credentials and cert directly
         if macaroon is None:
@@ -212,231 +168,38 @@ class BaseClient(object):
         self._credentials = generate_credentials(cert, macaroon)
         self.ip_address = ip_address
 
-    @property
-    def _ln_stub(self):
-        """Create a ln_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
         channel = self.grpc_module.secure_channel(
-            self.ip_address,
-            self._credentials, 
-            # timeout=30,
-            options=[('grpc.max_receive_message_length', 1024*1024*50), ("grpc.max_connection_idle_ms", 30000)]
-        )
-        return lnrpc.LightningStub(channel)
+                        self.ip_address,
+                        self._credentials, 
+                        options =   [
+                                        ('grpc.max_receive_message_length', 1024*1024*50),
 
-    @property
-    def _router_stub(self):
-        """Create a ln_stub dynamically to ensure channel freshness
+                                        # if there aren't any calls for 30 seconds, then allow the server to disconnect.
+                                        ("grpc.max_connection_idle_ms", 30000),
 
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return routerrpc.RouterStub(channel)
+                                        # send keep alive pings so that streaming calls will not hang if the TCP socket is broken.
+                                        # min value is 300001 until the fix for https://github.com/lightningnetwork/lnd/issues/7727 is in production.
+                                        # this currently results in up to 5 minute delay on reconnection if the TCP socket is broken.
+                                        ("grpc.keepalive_time_ms",300001),
 
-    @property
-    def _walletunlocker_stub(self):
-        """Create a wallet_stub dynamically to ensure channel freshness
+                                        # set no limit on the number of keepalive pings that can be sent
+                                        ('grpc.http2.max_pings_without_data', 0)
+                                    ]
+                         )
 
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return walletunlockerrpc.WalletUnlockerStub(channel)
-
-    @property
-    def _wallet_stub(self):
-        """Create a wallet_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return lnrpc.WalletUnlockerStub(channel)
-
-    @property
-    def _walletkit_stub(self):
-        """Create a wallet_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return walletkitrpc.WalletKitStub(channel)
-
-    @property
-    def _signer_stub(self):
-        """Create a wallet_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return signerrpc.SignerStub(channel)
+        self._ln_stub                   = lnrpc.LightningStub(channel)
+        self._router_stub               = routerrpc.RouterStub(channel)
+        self._walletunlocker_stub       = walletunlockerrpc.WalletUnlockerStub(channel)
+        self._walletkit_stub            = walletkitrpc.WalletKitStub(channel)
+        self._signer_stub               = signerrpc.SignerStub(channel)
+        self._version_stub              = verrpc.VersionerStub(channel)
+        self._invoices_stub             = invoicesrpc.InvoicesStub(channel)
+        self._state_stub                = stateservicerpc.StateStub(channel)
+        self._dev_stub                  = devrpc.DevStub(channel)
+        self._neutrino_stub             = neutrinorpc.NeutrinoKitStub(channel)
+        self._peer_stub                 = peersrpc.PeersStub(channel)
+        self._watchtower_stub           = watchtowerrpc.WatchtowerStub(channel)
+        self._wtclient_stub             = wtclientrpc.WatchtowerClientStub(channel)
+        self._autopilot_stub            = autopilotrpc.AutopilotStub(channel)
 
 
-    @property
-    def _version_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return verrpc.VersionerStub(channel)
-
-    @property
-    def _invoices_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return invoicesrpc.InvoicesStub(channel)
-
-    @property
-    def _invoices_servicer_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return invoicesrpc.InvoicesServicer(channel)
-
-    @property
-    def _state_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return stateservicerpc.StateStub(channel)
-
-    @property
-    def _dev_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return devrpc.DevStub(channel)
-
-    @property
-    def _neutrino_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return neutrinorpc.NeutrinoKitStub(channel)
-
-    @property
-    def _peer_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return peerrpc.PeersStub(channel)
-    
-    @property
-    def _watchtower_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return watchtowerrpc.WatchtowerStub(channel)
-
-    @property
-    def _wtclient_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return wtclientrpc.WatchtowerClientStub(channel)
-
-
-    @property
-    def _autopilot_stub(self):
-        """Create a version_stub dynamically to ensure channel freshness
-
-        If we make a call to the Lightning RPC service when the wallet
-        is locked or the server is down we will get back an RPCError with
-        StatusCode.UNAVAILABLE which will make the channel unusable.
-        To ensure the channel is usable we create a new one for each request.
-        """
-        channel = self.grpc_module.secure_channel(
-            self.ip_address, self._credentials, options=[('grpc.max_receive_message_length', 1024*1024*50)]
-        )
-        return autopilotrpc.AutopilotStub(channel)
