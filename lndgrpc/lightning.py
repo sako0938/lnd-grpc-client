@@ -221,9 +221,9 @@ class LightningRPC(BaseClient):
         return response
 
     @handle_rpc_errors
-    def send_payment(self, payment_request, fee_limit_msat, **kwargs):
+    def send_payment(self, payment_request, fee_limit_sat=None, fee_limit_msat=None, fee_limit_percent=None, **kwargs):
         """Send a payment over lightning"""
-        fee_limit = ln.FeeLimit(fixed_msat=fee_limit_msat)
+        fee_limit = ln.FeeLimit(fixed=fee_limit_sat,fixed_msat=fee_limit_msat,percent=fee_limit_percent)
         request = ln.SendRequest(payment_request=payment_request, fee_limit=fee_limit, **kwargs)
         response = self._ln_stub.SendPaymentSync(request)
         return response
