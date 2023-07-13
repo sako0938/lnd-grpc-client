@@ -171,11 +171,14 @@ class BaseClient(object):
             ParsedLNDConnect=urlparse(host)
             ParsedLNDConnectQuery=parse_qs(ParsedLNDConnect.query)
 
-            macaroon=urlsafe_b64decode(ParsedLNDConnectQuery['macaroon'][0]).hex()
+            # when decoding the macaroon (and also the cert below), add  +'=='  because https://github.com/LN-Zap/lndconnect/
+            # doesn't seem to properly pad the encoded data and python's `urlsafe_b64decode` will automatically ignore
+            # any extra padding so can just add the max padding all the time.
+            macaroon=urlsafe_b64decode(ParsedLNDConnectQuery['macaroon'][0]+'==').hex()
 
             # probably more complicated than just doing a simple encoding conversion but couldn't find any simple example or module to do that.
             # since the PEM data with the header and footer removed and then decoded is just DER data, read that in
-            ProcessedCertificate=load_der_x509_certificate(urlsafe_b64decode(ParsedLNDConnectQuery['cert'][0]),default_backend())
+            ProcessedCertificate=load_der_x509_certificate(urlsafe_b64decode(ParsedLNDConnectQuery['cert'][0]+'=='),default_backend())
 
             # then export it back out using normal PEM format, which is what GRPC is expecting.
             cert=ProcessedCertificate.public_bytes(encoding=serialization.Encoding.PEM)
