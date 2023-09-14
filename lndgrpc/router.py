@@ -76,3 +76,21 @@ class RouterRPC(BaseClient):
         )
         response = self._router_stub.UpdateChanStatus(request)
         return response
+    
+    @handle_rpc_errors
+    def get_mission_control_config(self):
+        """
+        GetMissionControlConfig
+        """
+        request = router.GetMissionControlConfigRequest()
+        response = self._router_stub.GetMissionControlConfig(request)
+        return response
+    
+    @handle_rpc_errors
+    def query_mission_control(self):
+        """
+        QueryMissionControl
+        """
+        request = router.QueryMissionControlRequest()
+        response = self._router_stub.QueryMissionControl(request)
+        return response
