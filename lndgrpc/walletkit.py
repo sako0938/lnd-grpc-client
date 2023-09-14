@@ -44,6 +44,15 @@ class WalletRPC(BaseClient):
         request = walletkit.ListAccountsRequest(**kwargs)
         response = self._walletkit_stub.ListAccounts(request)
         return response
+    
+    @handle_rpc_errors
+    def list_addresses(self, **kwargs):
+        """
+        ListAddresses
+        """
+        request = walletkit.ListAddressesRequest(**kwargs)
+        response = self._walletkit_stub.ListAddresses(request)
+        return response
 
     @handle_rpc_errors
     def list_unspent(self, min_confs=0,max_confs=100000, **kwargs):
