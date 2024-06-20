@@ -1,7 +1,7 @@
-from .common import invoices, ln, BaseClient
+from .common import invoices, BaseClient
 from .errors import handle_rpc_errors
-from datetime import datetime
-import binascii
+from hashlib import sha256
+from secrets import token_bytes
 
 class InvoicesRPC(BaseClient):
     @handle_rpc_errors
@@ -22,8 +22,6 @@ class InvoicesRPC(BaseClient):
     @handle_rpc_errors
     def lookup_invoice_v2(self, payment_hash=None, payment_addr=None, set_id=None, lookup_modifier=None):
         """LookupInvoiceV2"""
-        LookupInvoiceMsg
-        LookupInvoiceV2
         request = invoices.LookupInvoiceMsg(
             payment_hash=payment_hash,
             payment_addr=payment_addr,
@@ -34,16 +32,18 @@ class InvoicesRPC(BaseClient):
         return response
 
     @handle_rpc_errors
-    def settle_invoice(self, r_hash):
+    def settle_invoice(self, preimage):
         """SettleInvoice"""
-        # SettleInvoiceMsg
-        # SettleInvoice
-        pass
+        request = invoices.SettleInvoiceMsg(preimage=preimage)
+        response = self._invoices_stub.SettleInvoice(request)
+        return response
 
     @handle_rpc_errors
-    def settle_invoice(self, r_hash):
+    def add_hold_invoice(self, **kwargs):
         """AddHoldInvoice"""
-        # AddHoldInvoiceRequest
-        # AddHoldInvoice
-        pass
+        preimage = token_bytes(32)
+        r_hash = sha256(preimage).digest()
+        request = invoices.AddHoldInvoiceRequest(hash=r_hash, **kwargs)
+        response = self._invoices_stub.AddHoldInvoice(request)
+        return response, r_hash, preimage
 
