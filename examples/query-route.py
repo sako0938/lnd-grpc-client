@@ -109,7 +109,7 @@ m.update(preimage)
 preimage_hash = m.digest()
 
 inv = lnd.add_invoice(100000,"rebalance test")
-pr = lnd.decode_pay_req(inv.payment_request)
+pr = lnd.decode_payment_request(inv.payment_request)
 route = r.routes[0]
 route.hops[-1].mpp_record.total_amt_msat = pr.num_msat
 route.hops[-1].mpp_record.payment_addr = pr.payment_addr

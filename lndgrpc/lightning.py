@@ -278,7 +278,7 @@ class LightningRPC(BaseClient):
         return response
 
     @handle_rpc_errors
-    def decode_pay_req(self, payment_request):
+    def decode_payment_request(self, payment_request):
         """Decode a payment request"""
         request = ln.PayReqString(pay_req=payment_request)
         response = self._ln_stub.DecodePayReq(request)
