@@ -77,3 +77,11 @@ class RouterRPC(BaseClient):
         )
         response = self._router_stub.UpdateChanStatus(request)
         return response
+
+    @handle_rpc_errors
+    def track_payment_v2(self, payment_hash, no_inflight_updates=False):
+        """Subscribe to state of a single invoice"""
+        request = router.TrackPaymentRequest(payment_hash=bytes.fromhex(payment_hash), no_inflight_updates=no_inflight_updates)
+        for response in self._router_stub.TrackPaymentV2(request):
+            yield response
+
