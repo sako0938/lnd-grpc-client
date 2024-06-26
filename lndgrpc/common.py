@@ -41,6 +41,8 @@ from lndgrpc.compiled import (
     wtclient_pb2_grpc as wtclientrpc,
     chainnotifier_pb2 as chainnotifier,
     chainnotifier_pb2_grpc as chainnotifierrpc,
+    chainkit_pb2 as chainkit,
+    chainkit_pb2_grpc as chainkitrpc,
 )
 
 
@@ -230,5 +232,6 @@ class BaseClient(object):
         self._watchtower_stub           = watchtowerrpc.WatchtowerStub(channel)
         self._wtclient_stub             = wtclientrpc.WatchtowerClientStub(channel)
         self._autopilot_stub            = autopilotrpc.AutopilotStub(channel)
+        self._chainkit_stub             = chainkitrpc.ChainKitStub(channel)
 
 

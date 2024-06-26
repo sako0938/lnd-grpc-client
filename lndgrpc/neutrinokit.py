@@ -22,14 +22,6 @@ class NeutrinoRPC(BaseClient):
         response = self._neutrino_stub.AddPeer(request)
         return response
 
-    @handle_rpc_errors
-    def get_block(self, hash):
-        """
-        GetBlock
-        """
-        request = neutrino.GetBlockRequest(hash=hash)
-        response = self._neutrino_stub.GetBlock(request)
-        return response
 
     @handle_rpc_errors
     def get_block_header(self, hash):
