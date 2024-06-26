@@ -80,8 +80,15 @@ class RouterRPC(BaseClient):
 
     @handle_rpc_errors
     def track_payment_v2(self, payment_hash, no_inflight_updates=False):
-        """Subscribe to state of a single invoice"""
+        """Subscribe to the state of a single outbound payment"""
         request = router.TrackPaymentRequest(payment_hash=bytes.fromhex(payment_hash), no_inflight_updates=no_inflight_updates)
         for response in self._router_stub.TrackPaymentV2(request):
+            yield response
+
+    @handle_rpc_errors
+    def track_payments(self, no_inflight_updates=False):
+        """Subscribe to the state of all outbound payments"""
+        request = router.TrackPaymentsRequest(no_inflight_updates=no_inflight_updates)
+        for response in self._router_stub.TrackPayments(request):
             yield response
 
