@@ -8,9 +8,8 @@ class InvoicesRPC(BaseClient):
     def subscribe_single_invoice(self, r_hash):
         """Subscribe to state of a single invoice"""
         request = invoices.SubscribeSingleInvoiceRequest(r_hash=r_hash)
-        response = self._invoices_stub.SubscribeSingleInvoice(request)
-        for first in response:
-            return first
+        for response in self._invoices_stub.SubscribeSingleInvoice(request):
+            yield response
 
     @handle_rpc_errors
     def cancel_invoice(self, payment_hash):
