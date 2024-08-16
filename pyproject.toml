@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lnd-grpc-client"
-version = "0.5.6"
+version = "0.5.7"
 description = "An rpc client for LND (lightning network deamon)"
 authors = ["Kornpow <test@email.com>"]
 readme = "README.md"

@@ -41,10 +41,8 @@ class RouterRPC(BaseClient):
     @handle_rpc_errors
     def send_payment_v2(self, **kwargs):
         request = router.SendPaymentRequest(**kwargs)
-        responses = []
         for response in self._router_stub.SendPaymentV2(request):
-            responses.append(response)
-        return responses
+            yield response
 
     @handle_rpc_errors
     def send_payment_v1(self, **kwargs):
