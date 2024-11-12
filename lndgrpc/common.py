@@ -10,43 +10,6 @@ from cryptography.x509 import load_der_x509_certificate
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
-from lndgrpc.compiled import (
-    lightning_pb2 as ln,
-    lightning_pb2_grpc as lnrpc,
-    router_pb2 as router,
-    router_pb2_grpc as routerrpc,
-    verrpc_pb2 as ver,
-    verrpc_pb2_grpc as verrpc,
-    walletkit_pb2 as walletkit,
-    walletkit_pb2_grpc as walletkitrpc,
-    signer_pb2 as signer,
-    signer_pb2_grpc as signerrpc,
-    walletunlocker_pb2 as walletunlocker,
-    walletunlocker_pb2_grpc as walletunlockerrpc,
-    invoices_pb2 as invoices,
-    invoices_pb2_grpc as invoicesrpc,
-    stateservice_pb2 as stateservice,
-    stateservice_pb2_grpc as stateservicerpc,
-    dev_pb2 as dev,
-    dev_pb2_grpc as devrpc,
-    autopilot_pb2 as autopilot,
-    autopilot_pb2_grpc as autopilotrpc,
-    neutrino_pb2 as neutrino,
-    neutrino_pb2_grpc as neutrinorpc,
-    peers_pb2 as peers,
-    peers_pb2_grpc as peersrpc,
-    watchtower_pb2 as watchtower,
-    watchtower_pb2_grpc as watchtowerrpc,
-    wtclient_pb2 as wtclient,
-    wtclient_pb2_grpc as wtclientrpc,
-    chainnotifier_pb2 as chainnotifier,
-    chainnotifier_pb2_grpc as chainnotifierrpc,
-    chainkit_pb2 as chainkit,
-    chainkit_pb2_grpc as chainkitrpc,
-)
-
-
-
 
 # Due to updated ECDSA generated tls.cert we need to let gprc know that
 # we need to use that cipher suite otherwise there will be a handhsake
@@ -199,7 +162,7 @@ class BaseClient(object):
         self._credentials = generate_credentials(cert, macaroon)
         self.host = host
 
-        channel = self.grpc_module.secure_channel(
+        self.channel = self.grpc_module.secure_channel(
                         self.host,
                         self._credentials, 
                         options =   [
@@ -217,21 +180,4 @@ class BaseClient(object):
                                         ('grpc.http2.max_pings_without_data', 0)
                                     ]
                          )
-
-        self._ln_stub                   = lnrpc.LightningStub(channel)
-        self._router_stub               = routerrpc.RouterStub(channel)
-        self._walletunlocker_stub       = walletunlockerrpc.WalletUnlockerStub(channel)
-        self._walletkit_stub            = walletkitrpc.WalletKitStub(channel)
-        self._signer_stub               = signerrpc.SignerStub(channel)
-        self._version_stub              = verrpc.VersionerStub(channel)
-        self._invoices_stub             = invoicesrpc.InvoicesStub(channel)
-        self._state_stub                = stateservicerpc.StateStub(channel)
-        self._dev_stub                  = devrpc.DevStub(channel)
-        self._neutrino_stub             = neutrinorpc.NeutrinoKitStub(channel)
-        self._peer_stub                 = peersrpc.PeersStub(channel)
-        self._watchtower_stub           = watchtowerrpc.WatchtowerStub(channel)
-        self._wtclient_stub             = wtclientrpc.WatchtowerClientStub(channel)
-        self._autopilot_stub            = autopilotrpc.AutopilotStub(channel)
-        self._chainkit_stub             = chainkitrpc.ChainKitStub(channel)
-
 

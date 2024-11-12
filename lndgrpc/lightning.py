@@ -1,19 +1,27 @@
-from .common import ln, BaseClient
+from .compiled import lightning_pb2 as lightning                  # note: API docs call this lnrpc
+from .compiled import lightning_pb2_grpc as lightningrpc          # note: API docs call this lightningstub
+from .common import BaseClient
 from .errors import handle_rpc_errors
 from datetime import datetime
-import binascii
+
 
 class LightningRPC(BaseClient):
-    # LIGHTNINGRPC
+
+    def get_lightning_stub(self):
+        # only create a new stub if it does not already exist, otherwise re-use the existing one
+        if not hasattr(self, '_lightning_stub'):
+            self._lightning_stub = lightningrpc.LightningStub(self.channel)
+        return self._lightning_stub
+
     @handle_rpc_errors
     def get_info(self):
-        response = self._ln_stub.GetInfo(ln.GetInfoRequest())
+        response = self.get_lightning_stub().GetInfo(lightning.GetInfoRequest())
         return response
 
     @handle_rpc_errors
     def bake_macaroon(self, permissions, root_key_id, allow_external_permissions=False):
-        response = self._ln_stub.BakeMacaroon(
-            ln.BakeMacaroonRequest(
+        response = self.get_lightning_stub().BakeMacaroon(
+            lightning.BakeMacaroonRequest(
                 permissions=permissions,
                 root_key_id=root_key_id,
                 allow_external_permissions=allow_external_permissions
@@ -23,96 +31,96 @@ class LightningRPC(BaseClient):
 
     @handle_rpc_errors
     def list_macaroon_ids(self):
-        response = self._ln_stub.ListMacaroonIDs(ln.ListMacaroonIDsRequest())
+        response = self.get_lightning_stub().ListMacaroonIDs(lightning.ListMacaroonIDsRequest())
         return response
 
     @handle_rpc_errors
     def forwarding_history(self, **kwargs):
-        response = self._ln_stub.ForwardingHistory(ln.ForwardingHistoryRequest(**kwargs))
+        response = self.get_lightning_stub().ForwardingHistory(lightning.ForwardingHistoryRequest(**kwargs))
         return response
 
     @handle_rpc_errors
     def wallet_balance(self):
-        response = self._ln_stub.WalletBalance(ln.WalletBalanceRequest())
+        response = self.get_lightning_stub().WalletBalance(lightning.WalletBalanceRequest())
         return response
 
     @handle_rpc_errors
     def channel_balance(self):
-        response = self._ln_stub.ChannelBalance(ln.ChannelBalanceRequest())
+        response = self.get_lightning_stub().ChannelBalance(lightning.ChannelBalanceRequest())
         return response
 
     @handle_rpc_errors
     def list_peers(self):
         """List all active, currently connected peers"""
-        response = self._ln_stub.ListPeers(ln.ListPeersRequest())
+        response = self.get_lightning_stub().ListPeers(lightning.ListPeersRequest())
         return response
 
     @handle_rpc_errors
     def list_permissions(self):
         """List all permissions available"""
-        response = self._ln_stub.ListPermissions(ln.ListPermissionsRequest())
+        response = self.get_lightning_stub().ListPermissions(lightning.ListPermissionsRequest())
         return response
 
     @handle_rpc_errors
     def get_transactions(self, start_height, end_height, **kwargs):
         """List all open channels"""
-        request = ln.GetTransactionsRequest(
+        request = lightning.GetTransactionsRequest(
             start_height=start_height,
             end_height=end_height,
             **kwargs,
         )
-        response = self._ln_stub.GetTransactions(request)
+        response = self.get_lightning_stub().GetTransactions(request)
         return response
 
     @handle_rpc_errors
     def list_channels(self, **kwargs):
         """List all open channels"""
-        response = self._ln_stub.ListChannels(ln.ListChannelsRequest(**kwargs))
+        response = self.get_lightning_stub().ListChannels(lightning.ListChannelsRequest(**kwargs))
         return response
 
     @handle_rpc_errors
     def abandon_channel(self, **kwargs):
         """ ***danger*** Abandon a channel"""
-        response = self._ln_stub.AbandonChannel(ln.AbandonChannelRequest(**kwargs))
+        response = self.get_lightning_stub().AbandonChannel(lightning.AbandonChannelRequest(**kwargs))
         return response
 
     @handle_rpc_errors
     def export_all_channel_backups(self):
         """List all open channels"""
-        request = ln.ChanBackupExportRequest()
-        response = self._ln_stub.ExportAllChannelBackups(request)
+        request = lightning.ChanBackupExportRequest()
+        response = self.get_lightning_stub().ExportAllChannelBackups(request)
         return response
 
     @handle_rpc_errors
     def export_channel_backup(self, chan_point):
         """List all open channels"""
-        request = ln.ExportChannelBackupRequest(
+        request = lightning.ExportChannelBackupRequest(
             chan_point=chan_point
         )
-        response = self._ln_stub.ExportChannelBackup(request)
+        response = self.get_lightning_stub().ExportChannelBackup(request)
         return response
 
     @handle_rpc_errors
     def restore_channel_backups(self, chan_backups=None, multi_chan_backup=None):
         """List all open channels"""
-        request = ln.RestoreChanBackupRequest(
+        request = lightning.RestoreChanBackupRequest(
             chan_backups=chan_backups,
             multi_chan_backup=multi_chan_backup
         )
-        response = self._ln_stub.RestoreChannelBackups(request)
+        response = self.get_lightning_stub().RestoreChannelBackups(request)
         return response
 
     @handle_rpc_errors
     def get_recovery_info(self):
         """List all open channels"""
-        request = ln.GetRecoveryInfoRequest()
-        response = self._ln_stub.GetRecoveryInfo(request)
+        request = lightning.GetRecoveryInfoRequest()
+        response = self.get_lightning_stub().GetRecoveryInfo(request)
         return response
 
     @handle_rpc_errors
     def open_channel(self, node_pubkey, local_funding_amount, sat_per_byte, **kwargs):
         """Open a channel to an existing peer"""
-        request = ln.OpenChannelRequest(
+        request = lightning.OpenChannelRequest(
             node_pubkey=bytes.fromhex(node_pubkey),
             local_funding_amount=local_funding_amount,
             sat_per_byte=sat_per_byte,
@@ -120,7 +128,7 @@ class LightningRPC(BaseClient):
         )
         last_response = None
         start = datetime.now().timestamp()
-        for r in self._ln_stub.OpenChannel(request, timeout=30):
+        for r in self.get_lightning_stub().OpenChannel(request, timeout=30):
             return r
             last_response = r
             print(last_response)
@@ -133,76 +141,76 @@ class LightningRPC(BaseClient):
 
     @handle_rpc_errors
     def list_invoices(self, **kwargs):
-        request = ln.ListInvoiceRequest(**kwargs)
-        response = self._ln_stub.ListInvoices(request)
+        request = lightning.ListInvoiceRequest(**kwargs)
+        response = self.get_lightning_stub().ListInvoices(request)
         return response
 
     @handle_rpc_errors
     def funding_state_step(self, shim_register=None, shim_cancel=None, psbt_verify=None, psbt_finalize=None):
-        request = ln.FundingTransitionMsg(shim_register=shim_register, shim_cancel=shim_cancel, psbt_verify=psbt_verify, psbt_finalize=psbt_finalize)
-        response = self._ln_stub.FundingStateStep(request)
+        request = lightning.FundingTransitionMsg(shim_register=shim_register, shim_cancel=shim_cancel, psbt_verify=psbt_verify, psbt_finalize=psbt_finalize)
+        response = self.get_lightning_stub().FundingStateStep(request)
         return response
 
     @handle_rpc_errors
     def subscribe_invoices(self, add_index=None, settle_index=None):
-        request = ln.InvoiceSubscription(
+        request = lightning.InvoiceSubscription(
             add_index=add_index,
             settle_index=settle_index,
         )
-        for invoice in self._ln_stub.SubscribeInvoices(request):
+        for invoice in self.get_lightning_stub().SubscribeInvoices(request):
             yield invoice
 
     @handle_rpc_errors
     def add_invoice(self, value, memo='', **kwargs):
-        request = ln.Invoice(value=value, memo=memo, **kwargs)
-        response = self._ln_stub.AddInvoice(request)
+        request = lightning.Invoice(value=value, memo=memo, **kwargs)
+        response = self.get_lightning_stub().AddInvoice(request)
         return response
 
     @handle_rpc_errors
     def new_address(self, address_type=0):
         """Generates a new witness address"""
-        request = ln.NewAddressRequest(type=address_type)
-        response = self._ln_stub.NewAddress(request)
+        request = lightning.NewAddressRequest(type=address_type)
+        response = self.get_lightning_stub().NewAddress(request)
         return response
 
     @handle_rpc_errors
-    def connect_peer(self, pub_key, host, ln_at_url=None, perm=True, timeout=0):
-        """Connect to a remote lnd peer"""
-        if ln_at_url:
-            pub_key, host = ln_at_url.split("@")
-        ln_address = ln.LightningAddress(pubkey=pub_key, host=host)
-        request = ln.ConnectPeerRequest(addr=ln_address, perm=perm, timeout=timeout)
-        response = self._ln_stub.ConnectPeer(request)
+    def connect_peer(self, pub_key, host, lightning_at_url=None, perm=True, timeout=0):
+        """Connect to a remote lightningd peer"""
+        if lightning_at_url:
+            pub_key, host = lightning_at_url.split("@")
+        lightning_address = lightning.LightningAddress(pubkey=pub_key, host=host)
+        request = lightning.ConnectPeerRequest(addr=lightning_address, perm=perm, timeout=timeout)
+        response = self.get_lightning_stub().ConnectPeer(request)
         return response
 
     @handle_rpc_errors
     def disconnect_peer(self, pub_key):
-        """Disconnect a remote lnd peer identified by public key"""
-        request = ln.DisconnectPeerRequest(pub_key=pub_key)
-        response = self._ln_stub.DisconnectPeer(request)
+        """Disconnect a remote lightningd peer identified by public key"""
+        request = lightning.DisconnectPeerRequest(pub_key=pub_key)
+        response = self.get_lightning_stub().DisconnectPeer(request)
         return response
 
     @handle_rpc_errors
     def close_channel(self, channel_point, force=False, sat_per_vbyte=None, **kwargs):
         """Close an existing channel"""
         funding_txid, output_index = channel_point.split(':')
-        channel_point = ln.ChannelPoint(
+        channel_point = lightning.ChannelPoint(
             funding_txid_str=funding_txid,
             output_index=int(output_index)
         )
-        request = ln.CloseChannelRequest(
+        request = lightning.CloseChannelRequest(
             channel_point=channel_point,
             force=force,
             sat_per_vbyte=sat_per_vbyte,
             **kwargs
         )
-        response = self._ln_stub.CloseChannel(request)
+        response = self.get_lightning_stub().CloseChannel(request)
         return response
 
     @handle_rpc_errors
     def closed_channels(self):
         """ClosedChannels"""
-        request = ln.ClosedChannelsRequest(
+        request = lightning.ClosedChannelsRequest(
             cooperative=True,
             local_force=True,
             remote_force=True,
@@ -210,115 +218,115 @@ class LightningRPC(BaseClient):
             funding_canceled=True,
             abandoned=True
         )
-        response = self._ln_stub.ClosedChannels(request)
+        response = self.get_lightning_stub().ClosedChannels(request)
         return response
 
     @handle_rpc_errors
     def pending_channels(self):
         """Display information pertaining to pending channels"""
-        request = ln.PendingChannelsRequest()
-        response = self._ln_stub.PendingChannels(request)
+        request = lightning.PendingChannelsRequest()
+        response = self.get_lightning_stub().PendingChannels(request)
         return response
 
     @handle_rpc_errors
     def send_payment(self, payment_request, fee_limit_sat=None, fee_limit_msat=None, fee_limit_percent=None, **kwargs):
         """Send a payment over lightning"""
-        fee_limit = ln.FeeLimit(fixed=fee_limit_sat,fixed_msat=fee_limit_msat,percent=fee_limit_percent)
-        request = ln.SendRequest(payment_request=payment_request, fee_limit=fee_limit, **kwargs)
-        response = self._ln_stub.SendPaymentSync(request)
+        fee_limit = lightning.FeeLimit(fixed=fee_limit_sat,fixed_msat=fee_limit_msat,percent=fee_limit_percent)
+        request = lightning.SendRequest(payment_request=payment_request, fee_limit=fee_limit, **kwargs)
+        response = self.get_lightning_stub().SendPaymentSync(request)
         return response
 
     @handle_rpc_errors
     def lookup_invoice(self, r_hash):
         """Lookup an existing invoice by its payment hash"""
-        request = ln.PaymentHash(r_hash=r_hash)
-        response = self._ln_stub.LookupInvoice(request)
+        request = lightning.PaymentHash(r_hash=r_hash)
+        response = self.get_lightning_stub().LookupInvoice(request)
         return response
 
     @handle_rpc_errors
     def list_payments(self, **kwargs):
         """List all outgoing payments"""
-        request = ln.ListPaymentsRequest(**kwargs)
-        response = self._ln_stub.ListPayments(request)
+        request = lightning.ListPaymentsRequest(**kwargs)
+        response = self.get_lightning_stub().ListPayments(request)
         return response
 
     @handle_rpc_errors
     def describe_graph(self):
         """Describe the network graph"""
-        request = ln.ChannelGraphRequest()
-        response = self._ln_stub.DescribeGraph(request)
+        request = lightning.ChannelGraphRequest()
+        response = self.get_lightning_stub().DescribeGraph(request)
         return response
 
     @handle_rpc_errors
     def get_chan_info(self, channel_id):
         """Get the state of a specific channel"""
-        requset = ln.ChanInfoRequest(chan_id=channel_id)
-        response = self._ln_stub.GetChanInfo(requset)
+        requset = lightning.ChanInfoRequest(chan_id=channel_id)
+        response = self.get_lightning_stub().GetChanInfo(requset)
         return response
 
     @handle_rpc_errors
     def get_node_info(self, pub_key, include_channels=False):
         """Get information on a specific node"""
-        request = ln.NodeInfoRequest(pub_key=pub_key, include_channels=include_channels)
-        response = self._ln_stub.GetNodeInfo(request)
+        request = lightning.NodeInfoRequest(pub_key=pub_key, include_channels=include_channels)
+        response = self.get_lightning_stub().GetNodeInfo(request)
         return response
 
     @handle_rpc_errors
     def query_routes(self, pub_key, amt, **kwargs):
         """Query a route to a destination"""
-        request = ln.QueryRoutesRequest(pub_key=pub_key, amt=amt, **kwargs)
-        response = self._ln_stub.QueryRoutes(request)
+        request = lightning.QueryRoutesRequest(pub_key=pub_key, amt=amt, **kwargs)
+        response = self.get_lightning_stub().QueryRoutes(request)
         return response
 
     @handle_rpc_errors
     def get_network_info(self):
         """Returns basic stats about the known channel graph for this node"""
-        request = ln.NetworkInfoRequest()
-        response = self._ln_stub.GetNetworkInfo(request)
+        request = lightning.NetworkInfoRequest()
+        response = self.get_lightning_stub().GetNetworkInfo(request)
         return response
 
     @handle_rpc_errors
     def decode_payment_request(self, payment_request):
         """Decode a payment request"""
-        request = ln.PayReqString(pay_req=payment_request)
-        response = self._ln_stub.DecodePayReq(request)
+        request = lightning.PayReqString(pay_req=payment_request)
+        response = self.get_lightning_stub().DecodePayReq(request)
         return response
 
     @handle_rpc_errors
     def list_transactions(self):
         """List on chain transactions from the wallet"""
-        request = ln.GetTransactionsRequest()
-        response = self._ln_stub.GetTransactions(request)
+        request = lightning.GetTransactionsRequest()
+        response = self.get_lightning_stub().GetTransactions(request)
         return response
 
     @handle_rpc_errors
     def stop_daemon(self):
         """Stop and shutdown the daemon"""
-        request = ln.StopRequest()
-        response = self._ln_stub.StopDaemon(request)
+        request = lightning.StopRequest()
+        response = self.get_lightning_stub().StopDaemon(request)
         return response
 
     ## TODO: This has been moved to a subsystem
     # @handle_rpc_errors
     def sign_message(self, msg):
         """Sign a message with the node's private key"""
-        request = ln.SignMessageRequest(msg=msg)
-        response = self._ln_stub.SignMessage(request)
+        request = lightning.SignMessageRequest(msg=msg)
+        response = self.get_lightning_stub().SignMessage(request)
         return response
 
     ## TODO: This has been moved to a subsystem
     @handle_rpc_errors
     def verify_message(self, msg, signature):
         """Verify a message signed with the signature"""
-        request = ln.VerifyMessageRequest(msg=msg, signature=signature)
-        response = self._ln_stub.VerifyMessage(request)
+        request = lightning.VerifyMessageRequest(msg=msg, signature=signature)
+        response = self.get_lightning_stub().VerifyMessage(request)
         return response
 
     @handle_rpc_errors
     def fee_report(self):
         """Display the current fee policies of all active channels"""
-        request = ln.FeeReportRequest()
-        response = self._ln_stub.FeeReport(request)
+        request = lightning.FeeReportRequest()
+        response = self.get_lightning_stub().FeeReport(request)
         return response
 
     @handle_rpc_errors
@@ -336,13 +344,13 @@ class LightningRPC(BaseClient):
             txid, out_index = chan_point.split(":")
             txid_reversed = bytearray(bytes.fromhex(txid))
             txid_reversed.reverse()
-            cp = ln.ChannelPoint(funding_txid_bytes=bytes(txid_reversed), output_index=int(out_index))
+            cp = lightning.ChannelPoint(funding_txid_bytes=bytes(txid_reversed), output_index=int(out_index))
             kwargs['chan_point'] = cp
         if time_lock_delta:
             kwargs['time_lock_delta'] = time_lock_delta
 
-        request = ln.PolicyUpdateRequest(**kwargs)
-        response = self._ln_stub.UpdateChannelPolicy(request)
+        request = lightning.PolicyUpdateRequest(**kwargs)
+        response = self.get_lightning_stub().UpdateChannelPolicy(request)
         return response
 
     @handle_rpc_errors
@@ -354,8 +362,8 @@ class LightningRPC(BaseClient):
     @handle_rpc_errors
     def send_coins(self, address, amount, **kwargs):
         """Send bitcoin on-chain to a single address"""
-        request = ln.SendCoinsRequest(addr=address, amount=amount, **kwargs)
-        response = self._ln_stub.SendCoins(request)
+        request = lightning.SendCoinsRequest(addr=address, amount=amount, **kwargs)
+        response = self.get_lightning_stub().SendCoins(request)
         return response
 
     @handle_rpc_errors
@@ -373,7 +381,7 @@ class LightningRPC(BaseClient):
                     try:
                         print(cid)
                         sleep(3)
-                        response = ln.ChannelAcceptResponse(
+                        response = lightning.ChannelAcceptResponse(
                             accept=False,
                             error="get your BOS score up, simple pleb",
                             pending_chan_id=cid
@@ -388,7 +396,7 @@ class LightningRPC(BaseClient):
 
         response_msg = None
         request_iterable = request_generator()
-        it = self._ln_stub.ChannelAcceptor(request_iterable)
+        it = self.get_lightning_stub().ChannelAcceptor(request_iterable)
 
         for response in it:
             print("Response Iterator")
@@ -402,8 +410,8 @@ class LightningRPC(BaseClient):
     @handle_rpc_errors
     def debug_level(self, show, level_spec):
         """DebugLevel"""
-        request = ln.DebugLevelRequest(show=show, level_spec=level_spec)
-        response = self._ln_stub.DebugLevel(request)
+        request = lightning.DebugLevelRequest(show=show, level_spec=level_spec)
+        response = self.get_lightning_stub().DebugLevel(request)
         return response
 
     @handle_rpc_errors
@@ -413,13 +421,13 @@ class LightningRPC(BaseClient):
         for channel in channels:
             channel['node_pubkey']=bytes.fromhex(channel['node_pubkey'])
 
-        request = ln.BatchOpenChannelRequest(
+        request = lightning.BatchOpenChannelRequest(
             channels=channels,
             sat_per_vbyte=sat_per_vbyte,
             label=label,
             **kwargs
             )
 
-        response =  self._ln_stub.BatchOpenChannel(request)
+        response =  self.get_lightning_stub().BatchOpenChannel(request)
 
         return response.pending_channels
