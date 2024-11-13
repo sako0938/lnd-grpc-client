@@ -1,5 +1,7 @@
 from .compiled import walletkit_pb2 as walletkit                # note: API docs call this walletrpc
 from .compiled import walletkit_pb2_grpc as walletkitrpc        # note: API docs call this walletkitstub
+from .compiled import lightning_pb2 as lightning                  # note: API docs call this lnrpc
+from .compiled import lightning_pb2_grpc as lightningrpc          # note: API docs call this lightningstub
 from .common import BaseClient
 from .errors import handle_rpc_errors
 
@@ -20,7 +22,7 @@ class WalletRPC(BaseClient):
         BumpFee
         """
         txid_str, output_index = outpoint.split(":")
-        outpoint_obj = ln.OutPoint(txid_str=txid_str, output_index=int(output_index))
+        outpoint_obj = lightning.OutPoint(txid_str=txid_str, output_index=int(output_index))
         request = walletkit.BumpFeeRequest(
             outpoint=outpoint_obj,
             sat_per_vbyte=sat_per_vbyte,
