@@ -175,7 +175,7 @@ if rofIgnitionPossible:
 
 
 	inv = lnd.add_invoice(AMOUNT_SATS,"rebalance")
-	pr = lnd.decode_pay_req(inv.payment_request)
+	pr = lnd.decode_payment_request(inv.payment_request)
 
 
 

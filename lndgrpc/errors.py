@@ -33,23 +33,28 @@ def handle_rpc_errors(fnc):
             elif exc.code() == grpc.StatusCode.UNAVAILABLE:
                 print("UNAVAILABLE")
                 print(f"ERROR MESSAGE: {exc.details()}")
+                raise exc
             elif exc.code() == grpc.StatusCode.UNKNOWN and exc.details() == "wallet locked, unlock it to enable full RPC access":
                 print("WALLET IS LOCKED!")
                 raise exc
             elif exc.code() == grpc.StatusCode.UNKNOWN:
                 print("unknown")
                 print(f"ERROR MESSAGE: {exc.details()}")
+                raise exc
             elif exc.code() == grpc.StatusCode.NOT_FOUND:
                 print("NOT FOUND")
                 print(f"ERROR MESSAGE: {exc.details()}")
+                raise exc
             elif exc.code() == grpc.StatusCode.PERMISSION_DENIED:
                 print("PERMISSION_DENIED")
                 print(f"ERROR MESSAGE: {exc.details()}")
+                raise exc
             else:
                 raise exc
                 return exc
         except Exception as exc:
             print("unknown exception")
             print(exc)
+            raise exc
 
     return wrapper
