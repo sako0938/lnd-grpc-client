@@ -1,9 +1,19 @@
-from .common import signer, ln, BaseClient
+from .compiled import signer_pb2 as signer                # note: API docs call this signrpc
+from .compiled import signer_pb2_grpc as signerrpc        # note: API docs call this signerstub
+from .common import BaseClient
 from .errors import handle_rpc_errors
-from datetime import datetime
-import binascii
+
+
+
 
 class SignerRPC(BaseClient):
+
+    def get_signer_stub(self):
+        # only create a new stub if it does not already exist, otherwise re-use the existing one
+        if not hasattr(self, '_signer_stub'):
+            self._signer_stub = signerrpc.SignerStub(self.channel)
+        return self._signer_stub
+
     # SIGNERRPC
     @handle_rpc_errors
     def signer_sign_message(self, msg, key_family, key_index):
@@ -12,7 +22,7 @@ class SignerRPC(BaseClient):
             msg=msg,
             key_loc=key_loc
         )
-        response = self._signer_stub.SignMessage(request)
+        response = self.get_signer_stub().SignMessage(request)
         return response
 
     @handle_rpc_errors
@@ -22,5 +32,5 @@ class SignerRPC(BaseClient):
             signature=signature,
             pubkey=pubkey
         )
-        response = self._signer_stub.VerifyMessage(request)
+        response = self.get_signer_stub().VerifyMessage(request)
         return response
