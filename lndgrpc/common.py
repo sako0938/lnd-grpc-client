@@ -171,10 +171,20 @@ class BaseClient(object):
                                         # if there aren't any calls for 30 seconds, then allow the server to disconnect.
                                         ("grpc.max_connection_idle_ms", 30000),
 
-                                        # send keep alive pings so that streaming calls will not hang if the TCP socket is broken.
-                                        # min value is 300001 until the fix for https://github.com/lightningnetwork/lnd/issues/7727 is in production.
-                                        # this currently results in up to 5 minute delay on reconnection if the TCP socket is broken.
-                                        ("grpc.keepalive_time_ms",300001),
+                                        # send keep alive pings so that streaming calls will not hang if the TCP
+                                        # socket is broken (it will realize that it is disconnected and allow you to reconnect).
+                                        # for versions of lnd older than v0.17.0-beta the minimum value is 300001.
+                                        # this results in up to a 5 minute delay on reconnection if the TCP socket is broken.
+                                        # a minumum value of 300001 can be used because lnd versions older than v0.17.0-beta
+                                        # use the gRPC default value of 300000 for `grpc.client-ping-min-wait` and if the client tries
+                                        # to reconnect more frequently, lnd will get upset and kill the connection.
+                                        # lnd versions v0.17.0-beta and greater have the fix for
+                                        # https://github.com/lightningnetwork/lnd/issues/7727 implemented and
+                                        # `grpc.keepalive_time_ms` must be larger than the value of `grpc.client-ping-min-wait` set
+                                        # in `lnd.conf` (which lnd defaults to 5000). see also,
+                                        # https://github.com/lightningnetwork/lnd/blob/ce8cde6911436a907c443f6dbc0271ffb8a7e819/sample-lnd.conf#L1891-L1895
+                                        # since lnd version v0.17.0-beta was released a while ago, we use 30000 (30 seconds) now.
+                                        ("grpc.keepalive_time_ms", 30000),
 
                                         # set no limit on the number of keepalive pings that can be sent
                                         ('grpc.http2.max_pings_without_data', 0)
